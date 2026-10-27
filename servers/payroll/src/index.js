@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { serve, money } from './_shared.js';
+import { calculatePayroll } from './payroll.js';
 
 serve('mcp-payroll', '1.0.0', [
   {
@@ -7,10 +8,12 @@ serve('mcp-payroll', '1.0.0', [
     desc: 'Gross-to-net payroll estimate for hourly staff: hours worked, hourly rate, tax rate (%).',
     schema: { type: 'object', properties: { hours: { type: 'number' }, hourly_rate: { type: 'number' }, tax_rate: { type: 'number', description: 'Percent, e.g. 22' } }, required: ['hours', 'hourly_rate'] },
     handler: async ({ hours, hourly_rate, tax_rate = 22 }) => {
-      const gross = money(hours * hourly_rate);
-      const ot = hours > 40 ? money(0.5 * hourly_rate * (hours - 40)) : 0;
-      const net = money(gross * (1 - tax_rate / 100) + ot);
-      return { content: [{ type: 'text', text: `Gross: $${money(gross)}\nOvertime premium: $${ot}\nEst. tax (${tax_rate}%): $${money(gross - net + ot)}\nNet pay: $${net}` }] };
+      const { gross, overtimePremium, tax, net } = calculatePayroll({
+        hours,
+        hourly_rate,
+        tax_rate,
+      });
+      return { content: [{ type: 'text', text: `Gross: $${money(gross)}\nOvertime premium: $${overtimePremium}\nEst. tax (${tax_rate}%): $${money(tax)}\nNet pay: $${net}` }] };
     },
   },
   {
